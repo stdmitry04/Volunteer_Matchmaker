@@ -392,11 +392,16 @@ def confirm_volunteer(request, job_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Find the pending acceptance (created when volunteer swiped right)
-    try:
-        acceptance = JobAcceptance.objects.get(user=volunteer, job=job)
-    except JobAcceptance.DoesNotExist:
+    # First verify the user expressed interest (has MatchingInterest)
+    if not MatchingInterest.objects.filter(user=volunteer, job=job, interested=True).exists():
         return Response({'error': 'User has not expressed interest in this job.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Find or create the JobAcceptance (may not exist for old swipes before we added auto-creation)
+    acceptance, created = JobAcceptance.objects.get_or_create(
+        user=volunteer,
+        job=job,
+        defaults={'status': 'pending'}
+    )
 
     if acceptance.status not in ('pending', 'accepted'):
         return Response({'error': f'Cannot confirm volunteer with status: {acceptance.status}'}, status=status.HTTP_400_BAD_REQUEST)

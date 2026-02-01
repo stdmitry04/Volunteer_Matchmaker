@@ -38,8 +38,17 @@ export default function InterestedVolunteers({ jobId, isOpen, onClose }: Interes
     try {
       await jobService.acceptVolunteer(jobId, userId);
       setVolunteers((prev) => prev.filter((v) => v.user_id !== userId));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to accept volunteer:', error);
+      // Extract error message from response
+      let message = 'Failed to accept volunteer. Please try again.';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { error?: string } } };
+        if (axiosError.response?.data?.error) {
+          message = axiosError.response.data.error;
+        }
+      }
+      alert(message);
     } finally {
       setAccepting(null);
     }
