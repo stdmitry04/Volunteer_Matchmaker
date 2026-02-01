@@ -26,6 +26,21 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['latitude', 'longitude', 'skill_tags', 'limitations']
 
 
+class BadgeSerializer(serializers.Serializer):
+    track = serializers.CharField()
+    level = serializers.IntegerField()
+    level_name = serializers.CharField()
+    progress = serializers.IntegerField()
+    next_threshold = serializers.IntegerField(allow_null=True)
+    title = serializers.CharField(allow_blank=True)
+    description = serializers.CharField()
+
+
+class JobCompletionSerializer(serializers.Serializer):
+    job_id = serializers.UUIDField()
+    completed = serializers.BooleanField(default=True)
+
+
 class MatchingInterestSerializer(serializers.Serializer):
     job_id = serializers.UUIDField()
     interested = serializers.BooleanField()
