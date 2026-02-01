@@ -12,22 +12,20 @@ import {
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, logout } = useAuthStore();
 
   const handleSignIn = () => {
     if (isAuthenticated) {
-      router.push('/dashboard');
-    } else {
-      router.push('/auth?mode=signin');
+      logout();
     }
+    router.push('/auth?mode=signin');
   };
 
   const handleSignUp = () => {
     if (isAuthenticated) {
-      router.push('/dashboard');
-    } else {
-      router.push('/auth?mode=signup');
+      logout();
     }
+    router.push('/auth?mode=signup');
   };
 
   return (

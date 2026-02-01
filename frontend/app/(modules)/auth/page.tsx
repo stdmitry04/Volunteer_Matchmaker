@@ -45,7 +45,7 @@ function AuthForm() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/matching');
+      router.replace('/matching');
     }
   }, [isAuthenticated, router]);
 
@@ -87,7 +87,7 @@ function AuthForm() {
 
         const user = await authService.getMe();
         setUser(user);
-        router.push('/matching');
+        router.replace('/matching');
       } else {
         const tokens = await authService.login({
           email: formData.email,
@@ -99,7 +99,7 @@ function AuthForm() {
 
         const user = await authService.getMe();
         setUser(user);
-        router.push('/matching');
+        router.replace('/matching');
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string; message?: string } } };

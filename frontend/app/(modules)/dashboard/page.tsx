@@ -15,6 +15,19 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pending');
   const [acceptedJobs, setAcceptedJobs] = useState<JobAcceptance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [retractingJobId, setRetractingJobId] = useState<string | null>(null);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const accepted = await jobService.getAcceptedJobs();
+      setAcceptedJobs(accepted);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!_hasHydrated) return;
@@ -23,18 +36,6 @@ export default function DashboardPage() {
       router.push('/auth?mode=signin');
       return;
     }
-
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const accepted = await jobService.getAcceptedJobs();
-        setAcceptedJobs(accepted);
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     loadData();
   }, [isAuthenticated, _hasHydrated, router]);
@@ -54,6 +55,25 @@ export default function DashboardPage() {
 
   const handleChatClick = (jobId: string) => {
     router.push(`/chat?job=${jobId}`);
+  };
+
+  const handleRetract = async (jobId: string) => {
+    if (retractingJobId) return; // Prevent double-click
+
+    const confirmed = window.confirm('Are you sure you want to retract your application? This cannot be undone.');
+    if (!confirmed) return;
+
+    setRetractingJobId(jobId);
+    try {
+      await jobService.retractApplication(jobId);
+      // Remove from local state
+      setAcceptedJobs((prev) => prev.filter((a) => a.job.id !== jobId));
+    } catch (error) {
+      console.error('Failed to retract application:', error);
+      alert('Failed to retract application. Please try again.');
+    } finally {
+      setRetractingJobId(null);
+    }
   };
 
   return (
@@ -122,6 +142,22 @@ export default function DashboardPage() {
                         key={acceptance.id}
                         job={acceptance.job}
                         status={acceptance.status}
+                        actions={
+                          <button
+                            onClick={() => handleRetract(acceptance.job.id)}
+                            disabled={retractingJobId === acceptance.job.id}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium disabled:opacity-50"
+                          >
+                            {retractingJobId === acceptance.job.id ? (
+                              <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
+                            Retract
+                          </button>
+                        }
                       />
                     ))}
                   </div>
@@ -143,15 +179,33 @@ export default function DashboardPage() {
                         job={acceptance.job}
                         status={acceptance.status}
                         actions={
-                          <button
-                            onClick={() => handleChatClick(acceptance.job.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                            Chat
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleChatClick(acceptance.job.id)}
+                              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              Chat
+                            </button>
+                            {acceptance.status !== 'in_progress' && (
+                              <button
+                                onClick={() => handleRetract(acceptance.job.id)}
+                                disabled={retractingJobId === acceptance.job.id}
+                                className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm disabled:opacity-50"
+                                title="Retract application"
+                              >
+                                {retractingJobId === acceptance.job.id ? (
+                                  <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         }
                       />
                     ))}

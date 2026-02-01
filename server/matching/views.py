@@ -265,7 +265,7 @@ def get_or_update_profile(request):
         from authentication.serializers import UserSerializer
         badges = compute_badges(request.user)
         return Response({
-            'user': UserSerializer(request.user).data,
+            'user': UserSerializer(request.user, context={'request': request}).data,
             'profile': UserProfileFullSerializer(profile).data,
             'badges': badges,
         })
@@ -281,7 +281,7 @@ def get_or_update_profile(request):
     from authentication.serializers import UserSerializer
     badges = compute_badges(request.user)
     return Response({
-        'user': UserSerializer(request.user).data,
+        'user': UserSerializer(request.user, context={'request': request}).data,
         'profile': UserProfileFullSerializer(profile).data,
         'badges': badges,
     })
@@ -393,11 +393,16 @@ def confirm_volunteer(request, job_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Find the pending acceptance (created when volunteer swiped right)
-    try:
-        acceptance = JobAcceptance.objects.get(user=volunteer, job=job)
-    except JobAcceptance.DoesNotExist:
+    # First verify the user expressed interest (has MatchingInterest)
+    if not MatchingInterest.objects.filter(user=volunteer, job=job, interested=True).exists():
         return Response({'error': 'User has not expressed interest in this job.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Find or create the JobAcceptance (may not exist for old swipes before we added auto-creation)
+    acceptance, created = JobAcceptance.objects.get_or_create(
+        user=volunteer,
+        job=job,
+        defaults={'status': 'pending'}
+    )
 
     if acceptance.status not in ('pending', 'accepted'):
         return Response({'error': f'Cannot confirm volunteer with status: {acceptance.status}'}, status=status.HTTP_400_BAD_REQUEST)
@@ -462,3 +467,38 @@ def my_interested_jobs(request):
     jobs = [i.job for i in interests]
     data = JobMatchSerializer(jobs, many=True).data
     return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def retract_application(request, job_id):
+    """Volunteer retracts their application for a job."""
+    try:
+        job = Job.objects.get(id=job_id, is_active=True)
+    except Job.DoesNotExist:
+        return Response({'error': 'Job not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Find and delete the JobAcceptance
+    try:
+        acceptance = JobAcceptance.objects.get(user=request.user, job=job)
+    except JobAcceptance.DoesNotExist:
+        return Response({'error': 'You have not applied to this job.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Only allow retraction if status is pending or confirmed (not completed/in_progress)
+    if acceptance.status in ('completed', 'in_progress'):
+        return Response(
+            {'error': 'Cannot retract from a job that is in progress or completed.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Delete the acceptance
+    acceptance.delete()
+
+    # Also update the MatchingInterest to not interested
+    MatchingInterest.objects.filter(user=request.user, job=job).update(interested=False)
+
+    return Response({
+        'status': 'Application retracted',
+        'job_id': str(job_id),
+        'job_title': job.title,
+    })

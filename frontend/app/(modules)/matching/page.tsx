@@ -69,7 +69,7 @@ export default function MatchingPage() {
       {/* Header */}
       <header className="bg-white shadow-sm px-4 py-4 flex items-center justify-between">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/dashboard')}
           className="p-2 -ml-2 text-gray-600 hover:text-gray-900 transition-colors"
           aria-label="Go back"
         >

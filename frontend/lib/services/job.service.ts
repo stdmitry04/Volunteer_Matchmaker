@@ -111,4 +111,12 @@ export const jobService = {
     });
     return response.data;
   },
+
+  // Volunteer retracts their application
+  async retractApplication(jobId: string): Promise<{ status: string; job_title: string }> {
+    const response = await api.post<{ status: string; job_id: string; job_title: string }>(
+      `/matching/jobs/${jobId}/retract`
+    );
+    return response.data;
+  },
 };

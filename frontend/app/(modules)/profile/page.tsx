@@ -26,7 +26,7 @@ function adaptProfile(data: ProfileResponse): UserProfile {
     username: data.user.username,
     firstName: data.user.first_name || '',
     lastName: data.user.last_name || '',
-    avatar: undefined,
+    avatar: data.user.avatar_url || undefined,
     bio: '',
     location: data.profile.display_location || 'Location not set',
     joinedAt: new Date().toISOString(),
@@ -120,7 +120,7 @@ function LoadingSkeleton() {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user, setUser } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [activeView, setActiveView] = useState<ProfileView>('helper');
@@ -157,7 +157,7 @@ export default function ProfilePage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-white"
@@ -185,9 +185,17 @@ export default function ProfilePage() {
               </Link>
               {profile && (
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-                    {profile.firstName[0]}{profile.lastName[0]}
-                  </div>
+                  {backendProfile?.user.avatar_url ? (
+                    <img
+                      src={backendProfile.user.avatar_url}
+                      alt={`${profile.firstName} ${profile.lastName}`}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+                      {profile.firstName[0]}{profile.lastName[0]}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -204,7 +212,34 @@ export default function ProfilePage() {
             <div className="space-y-6">
               {/* Profile Header with Edit Buttons */}
               <div className="relative">
-                <ProfileHeader profile={profile} />
+                <ProfileHeader
+                  profile={profile}
+                  avatarUrl={backendProfile?.user.avatar_url}
+                  onAvatarUpload={(newUrl) => {
+                    if (backendProfile) {
+                      setBackendProfile({
+                        ...backendProfile,
+                        user: { ...backendProfile.user, avatar_url: newUrl },
+                      });
+                    }
+                    // Update auth store so avatar shows in header across all pages
+                    if (user) {
+                      setUser({ ...user, avatar_url: newUrl });
+                    }
+                  }}
+                  onAvatarDelete={() => {
+                    if (backendProfile) {
+                      setBackendProfile({
+                        ...backendProfile,
+                        user: { ...backendProfile.user, avatar_url: null },
+                      });
+                    }
+                    // Update auth store so avatar is removed from header
+                    if (user) {
+                      setUser({ ...user, avatar_url: null });
+                    }
+                  }}
+                />
                 <div className="absolute top-4 right-4 flex gap-2">
                   <button
                     onClick={() => setShowLocationModal(true)}
