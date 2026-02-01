@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'core',
     'authentication',
     'matching',
+    'ai_assist',
 ]
 
 MIDDLEWARE = [
@@ -119,3 +120,5 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
