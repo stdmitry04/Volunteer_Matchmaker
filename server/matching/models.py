@@ -16,8 +16,8 @@ class Job(BaseModel):
     description = models.TextField()
     short_description = models.CharField(max_length=200)
     poster = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posted_jobs')
-    latitude = models.FloatField()
-    longitude = models.FloatField()
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     location_label = models.CharField(max_length=255, blank=True, default='')  # e.g., "East Lansing, MI"
     shift_start = models.DateTimeField()
     shift_end = models.DateTimeField()

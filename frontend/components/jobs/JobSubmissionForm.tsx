@@ -70,6 +70,8 @@ export default function JobSubmissionForm({ onSubmit }: JobSubmissionFormProps) 
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
   const [locationStatus, setLocationStatus] = useState<string>('');
+  const [manualAddress, setManualAddress] = useState('');
+  const [showManualLocation, setShowManualLocation] = useState(false);
 
   // Confirm dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -409,44 +411,51 @@ export default function JobSubmissionForm({ onSubmit }: JobSubmissionFormProps) 
         {/* Location */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => {
                 if (!navigator.geolocation) {
                   showToast('Geolocation is not supported by your browser', 'error');
+                  setShowManualLocation(true);
                   return;
                 }
                 setLocationStatus('Getting location...');
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    setLatitude(pos.coords.latitude);
-                    setLongitude(pos.coords.longitude);
-                    setLocationStatus(`Location set (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`);
-                    showToast('Location set successfully!', 'success');
-                  },
-                  (error) => {
-                    setLocationStatus('');
-                    switch (error.code) {
-                      case error.PERMISSION_DENIED:
-                        showToast('Location permission denied. Please enable location access in your browser settings.', 'error');
-                        break;
-                      case error.POSITION_UNAVAILABLE:
-                        showToast('Location information unavailable. Please try again.', 'error');
-                        break;
-                      case error.TIMEOUT:
-                        showToast('Location request timed out. Please try again.', 'error');
-                        break;
-                      default:
-                        showToast('Unable to get your location. Please try again.', 'error');
-                    }
-                  },
-                  {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
+
+                const onSuccess = (pos: GeolocationPosition) => {
+                  setLatitude(pos.coords.latitude);
+                  setLongitude(pos.coords.longitude);
+                  setLocationStatus(`Location set (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`);
+                  showToast('Location set successfully!', 'success');
+                };
+
+                const onError = (error: GeolocationPositionError) => {
+                  setLocationStatus('');
+                  if (error.code === error.PERMISSION_DENIED) {
+                    showToast('Location permission denied. Please enable location access in your browser settings, or enter an address below.', 'error');
+                    setShowManualLocation(true);
+                  } else if (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT) {
+                    // Retry without high accuracy (uses IP/WiFi instead of GPS)
+                    navigator.geolocation.getCurrentPosition(
+                      onSuccess,
+                      () => {
+                        setLocationStatus('');
+                        showToast('Could not detect location automatically. Please enter an address below.', 'error');
+                        setShowManualLocation(true);
+                      },
+                      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+                    );
+                  } else {
+                    showToast('Unable to get your location. Please enter an address below.', 'error');
+                    setShowManualLocation(true);
                   }
-                );
+                };
+
+                navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+                  enableHighAccuracy: true,
+                  timeout: 10000,
+                  maximumAge: 0,
+                });
               }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
             >
@@ -456,10 +465,64 @@ export default function JobSubmissionForm({ onSubmit }: JobSubmissionFormProps) 
               </svg>
               Use My Location
             </button>
+            {!showManualLocation && (
+              <button
+                type="button"
+                onClick={() => setShowManualLocation(true)}
+                className="text-sm text-primary hover:underline"
+              >
+                Enter address instead
+              </button>
+            )}
             {locationStatus && (
               <span className="text-sm text-gray-500">{locationStatus}</span>
             )}
           </div>
+
+          {showManualLocation && (
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={manualAddress}
+                onChange={(e) => setManualAddress(e.target.value)}
+                placeholder="City, ZIP, or address (e.g. East Lansing, MI)"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!manualAddress.trim()) {
+                    showToast('Please enter an address', 'error');
+                    return;
+                  }
+                  setLocationStatus('Looking up address...');
+                  try {
+                    const response = await fetch(
+                      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(manualAddress.trim())}&limit=1`,
+                      { headers: { 'User-Agent': 'SpartaHack-App' } }
+                    );
+                    const results = await response.json();
+                    if (results.length > 0) {
+                      const { lat, lon, display_name } = results[0];
+                      setLatitude(parseFloat(lat));
+                      setLongitude(parseFloat(lon));
+                      setLocationStatus(`Location set: ${display_name.split(',').slice(0, 2).join(',')}`);
+                      showToast('Location set from address!', 'success');
+                    } else {
+                      setLocationStatus('');
+                      showToast('Could not find that address. Try a different format.', 'error');
+                    }
+                  } catch {
+                    setLocationStatus('');
+                    showToast('Address lookup failed. Please try again.', 'error');
+                  }
+                }}
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+              >
+                Look Up
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Shift Times */}

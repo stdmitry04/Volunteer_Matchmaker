@@ -172,12 +172,12 @@ def create_job(request):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
-    lat = data.get('latitude', 0.0)
-    lng = data.get('longitude', 0.0)
+    lat = data.get('latitude')
+    lng = data.get('longitude')
 
     # Reverse geocode to get location label
     location_label = ''
-    if lat and lng:
+    if lat is not None and lng is not None:
         location_label = reverse_geocode(lat, lng)
 
     defaults = {
