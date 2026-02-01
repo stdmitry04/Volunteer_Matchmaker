@@ -17,7 +17,7 @@ export default function Header() {
 
   return (
     <header className="h-16 border-b border-gray-200 flex items-center justify-between px-6 bg-white">
-      <Link href={showAuthContent && isAuthenticated ? '/matching' : '/'} className="flex items-center gap-2">
+      <Link href={showAuthContent && isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-2">
         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
           <svg
             className="w-5 h-5 text-white"
