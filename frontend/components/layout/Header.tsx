@@ -39,9 +39,17 @@ export default function Header() {
       {showAuthContent && isAuthenticated && user && (
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">{user.first_name} {user.last_name}</span>
-          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-            {user.first_name?.[0]}{user.last_name?.[0]}
-          </div>
+          {user.avatar_url ? (
+            <img
+              src={user.avatar_url}
+              alt={`${user.first_name} ${user.last_name}`}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+              {user.first_name?.[0]}{user.last_name?.[0]}
+            </div>
+          )}
         </div>
       )}
     </header>

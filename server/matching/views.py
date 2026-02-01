@@ -264,7 +264,7 @@ def get_or_update_profile(request):
         from authentication.serializers import UserSerializer
         badges = compute_badges(request.user)
         return Response({
-            'user': UserSerializer(request.user).data,
+            'user': UserSerializer(request.user, context={'request': request}).data,
             'profile': UserProfileFullSerializer(profile).data,
             'badges': badges,
         })
@@ -280,7 +280,7 @@ def get_or_update_profile(request):
     from authentication.serializers import UserSerializer
     badges = compute_badges(request.user)
     return Response({
-        'user': UserSerializer(request.user).data,
+        'user': UserSerializer(request.user, context={'request': request}).data,
         'profile': UserProfileFullSerializer(profile).data,
         'badges': badges,
     })

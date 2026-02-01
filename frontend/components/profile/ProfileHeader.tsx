@@ -1,33 +1,52 @@
 'use client';
 
 import { UserProfile } from '@/lib/mock/profileData';
+import AvatarUpload from './AvatarUpload';
 
 interface ProfileHeaderProps {
   profile: UserProfile;
+  avatarUrl?: string | null;
+  onAvatarUpload?: (newAvatarUrl: string) => void;
+  onAvatarDelete?: () => void;
 }
 
-export default function ProfileHeader({ profile }: ProfileHeaderProps) {
-  const initials = `${profile.firstName[0]}${profile.lastName[0]}`;
+export default function ProfileHeader({
+  profile,
+  avatarUrl,
+  onAvatarUpload,
+  onAvatarDelete,
+}: ProfileHeaderProps) {
   const memberSince = new Date(profile.joinedAt).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
   });
 
+  const userName = `${profile.firstName} ${profile.lastName}`;
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
       <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-        {/* Avatar */}
-        <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary flex items-center justify-center text-white text-3xl md:text-4xl font-bold flex-shrink-0">
-          {profile.avatar ? (
-            <img
-              src={profile.avatar}
-              alt={`${profile.firstName} ${profile.lastName}`}
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            initials
-          )}
-        </div>
+        {/* Avatar with Upload */}
+        {onAvatarUpload && onAvatarDelete ? (
+          <AvatarUpload
+            currentAvatarUrl={avatarUrl}
+            userName={userName}
+            onUploadSuccess={onAvatarUpload}
+            onDeleteSuccess={onAvatarDelete}
+          />
+        ) : (
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary flex items-center justify-center text-white text-3xl md:text-4xl font-bold flex-shrink-0">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={userName}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              `${profile.firstName[0]}${profile.lastName[0]}`
+            )}
+          </div>
+        )}
 
         {/* Info */}
         <div className="flex-1">

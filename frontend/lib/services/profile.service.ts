@@ -7,6 +7,7 @@ export interface ProfileResponse {
     username: string;
     first_name: string;
     last_name: string;
+    avatar_url: string | null;
   };
   profile: {
     latitude: number | null;
@@ -77,6 +78,20 @@ export const profileService = {
 
   async revokeLocation(): Promise<{ message: string; has_location: boolean }> {
     const response = await api.delete('/matching/location/revoke');
+    return response.data;
+  },
+
+  async uploadAvatar(file: File): Promise<{ message: string; avatar_url: string }> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post('/auth/avatar/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async deleteAvatar(): Promise<{ message: string }> {
+    const response = await api.delete('/auth/avatar/delete/');
     return response.data;
   },
 };
